@@ -7,6 +7,7 @@ class CircularDependencyPlugin {
     this.options = extend({
       exclude: new RegExp('$^'),
       failOnError: false,
+      allowAsyncCycles: true,
       onDetected: false,
       cwd: process.cwd()
     }, options)
@@ -22,7 +23,7 @@ class CircularDependencyPlugin {
           plugin.options.onStart({ compilation });
         }
         for (let module of modules) {
-          const shouldSkip = module.resource === undefined 
+          const shouldSkip = module.resource === undefined
               || plugin.options.exclude.test(module.resource);
           if (shouldSkip) { continue }
 
@@ -74,6 +75,8 @@ class CircularDependencyPlugin {
     for (let dependency of currentModule.dependencies) {
       let depModule = dependency.module
       if (!depModule) { continue }
+      // ignore dependencies that are resolved asynchronously
+      if (this.options.allowAsyncCycles && dependency.weak) { continue }
 
       if (depModule.debugId in seenModules) {
         if (depModule.debugId === initialModule.debugId) {
